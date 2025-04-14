@@ -12,7 +12,7 @@ app.use(cors());
 app.use(express.json());
 
 // Check for required API keys
-if (!process.env.GOOGLE_API_KEY || !process.env.GITHUB_TOKEN) {
+if (!process.env.GOOGLE_API_KEY || !process.env.GITHUB_TOKEN || !process.env.YOUTUBE_API_KEY) {
     console.error("❌ Missing API keys in .env");
     process.exit(1);
 }
@@ -54,13 +54,39 @@ const fetchGitHubRepos = async (feature) => {
         return response.data.items.map(repo => ({
             name: repo.name,
             full_name: repo.full_name,
-            // description: repo.description,
             stars: repo.stargazers_count,
             url: repo.html_url,
             language: repo.language,
         }));
     } catch (error) {
         console.error('❌ GitHub API Error:', error.message || error);
+        return [];
+    }
+};
+
+// YouTube API Helper Function
+const fetchYouTubeVideos = async (query) => {
+    try {
+        console.log(`YouTube Query: "${query}"`);
+        const response = await axios.get('https://www.googleapis.com/youtube/v3/search', {
+            params: {
+                key: process.env.YOUTUBE_API_KEY,
+                q: query,
+                part: 'snippet',
+                type: 'video',
+                maxResults: 5, // Limit to top 5 videos
+            },
+        });
+
+        return response.data.items.map(video => ({
+            title: video.snippet.title,
+            description: video.snippet.description,
+            url: `https://www.youtube.com/watch?v=${video.id.videoId}`,
+            channel: video.snippet.channelTitle,
+            thumbnail: video.snippet.thumbnails.high.url,
+        }));
+    } catch (error) {
+        console.error('❌ YouTube API Error:', error.message || error);
         return [];
     }
 };
@@ -110,23 +136,30 @@ app.post('/generate', async (req, res) => {
                 return res.status(200).json({
                     message: 'No features could be generated for the provided idea.',
                     features: [],
-                    featureRepos: {}
+                    featureRepos: {},
+                    featureVideos: {}
                 });
             }
 
-            // Fetch GitHub repos for each feature
+            // Fetch GitHub repos and YouTube videos for each feature
             const featureRepos = {};
+            const featureVideos = {};
             for (const feature of features) {
                 console.log(`Fetching repos for feature: ${feature}`);
                 const repos = await fetchGitHubRepos(feature);
                 featureRepos[feature] = repos.length > 0 ? repos : [{ message: 'No repositories found for this feature.' }];
+
+                console.log(`Fetching videos for feature: ${feature}`);
+                const videos = await fetchYouTubeVideos(feature);
+                featureVideos[feature] = videos.length > 0 ? videos : [{ message: 'No videos found for this feature.' }];
             }
 
-            return res.json({ features, featureRepos });
+            return res.json({ features, featureRepos, featureVideos });
         } else if (mode === 'whole') {
-            // Behavior 1: Search for whole project repositories
+            // Behavior 1: Search for whole project repositories and videos
             const wholeProjectRepos = await fetchGitHubRepos(idea);
-            return res.json({ wholeProjectRepos });
+            const wholeProjectVideos = await fetchYouTubeVideos(idea);
+            return res.json({ wholeProjectRepos, wholeProjectVideos });
         } else {
             return res.status(400).json({ error: 'Invalid mode. Use "whole" or "features".' });
         }
