@@ -1,63 +1,145 @@
+/* General Styles */
 body {
-    font-family: Arial, sans-serif;
+    font-family: 'Fira Code', monospace; /* Use a code-like font */
     margin: 0;
     padding: 0;
-    background-color: #f4f4f4;
+    background-color: #1e1e1e; /* Dark mode background */
+    color: #d4d4d4; /* Light text for contrast */
 }
 
 .container {
     width: 80%;
-    margin: 20px auto;
+    margin: 30px auto;
     padding: 20px;
-    background: white;
+    background: #252526; /* Slightly lighter background for the container */
     border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
 }
 
 h1, h2 {
-    color: #333;
+    color: #569cd6; /* Accent color for headings */
+    text-align: center;
+    margin-bottom: 20px;
+    font-weight: 500;
 }
 
 form {
-    margin-bottom: 20px;
+    margin-bottom: 30px;
 }
 
 form label {
     display: block;
     margin: 10px 0 5px;
+    font-weight: bold;
+    color: #9cdcfe; /* Soft blue for labels */
 }
 
 form input, form select, form button {
     width: 100%;
     padding: 10px;
-    margin-bottom: 10px;
-    border: 1px solid #ddd;
+    margin-bottom: 15px;
+    border: 1px solid #3c3c3c;
     border-radius: 4px;
+    background: #1e1e1e;
+    color: #d4d4d4;
+    font-size: 14px;
+    font-family: 'Fira Code', monospace;
 }
 
 form button {
-    background-color: #007BFF;
+    background-color: #007acc; /* Bright blue */
     color: white;
     border: none;
     cursor: pointer;
+    transition: background 0.3s ease;
 }
 
 form button:hover {
-    background-color: #0056b3;
+    background-color: #005f99; /* Slightly darker blue for hover */
+}
+
+/* Card Styles */
+.card {
+    background: #1e1e1e;
+    border: 1px solid #3c3c3c;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    font-family: 'Fira Code', monospace;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2);
+}
+
+.card h3 {
+    color: #4ec9b0; /* Soft green for card titles */
+    margin-bottom: 10px;
+    font-size: 18px;
+}
+
+.card p {
+    margin: 5px 0;
+    color: #dcdcaa; /* Yellowish text for descriptions */
+}
+
+.card a {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 8px 12px;
+    color: white;
+    background: #007acc;
+    border-radius: 4px;
+    text-decoration: none;
+    transition: background 0.3s ease;
+    font-size: 14px;
+}
+
+.card a:hover {
+    background: #005f99;
+}
+
+/* Results Section */
+.results-section {
+    margin-top: 40px;
+}
+
+.results-section h2 {
+    color: #569cd6;
+    margin-bottom: 20px;
+    text-align: center;
 }
 
 .hidden {
     display: none;
 }
 
-#results {
-    margin-top: 20px;
+/* Code Snippets */
+pre {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 15px;
+    border: 1px solid #3c3c3c;
+    border-radius: 5px;
+    overflow-x: auto;
+    font-family: 'Fira Code', monospace;
+    font-size: 14px;
+    margin-top: 10px;
 }
 
-#results div {
-    margin-bottom: 20px;
-}
+/* Responsive Design */
+@media (max-width: 768px) {
+    .container {
+        width: 95%;
+    }
 
-#results h2 {
-    color: #555;
+    form input, form select, form button {
+        font-size: 12px;
+    }
+
+    .card {
+        padding: 15px;
+    }
 }

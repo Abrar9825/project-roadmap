@@ -32,46 +32,66 @@ document.getElementById('generateForm').addEventListener('submit', async (e) => 
 
         resultsDiv.classList.remove('hidden');
 
-        // Project Repositories
+        // GitHub Repositories
         projectReposDiv.innerHTML = '<h3>GitHub Repositories</h3>';
         data.wholeProjectRepos.forEach(repo => {
-            const repoDiv = document.createElement('div');
-            repoDiv.innerHTML = `<a href="${repo.url}" target="_blank">${repo.name}</a> - ★ ${repo.stars}`;
-            projectReposDiv.appendChild(repoDiv);
+            const repoCard = document.createElement('div');
+            repoCard.className = 'card';
+            repoCard.innerHTML = `
+                <h3>${repo.name}</h3>
+                <p>Stars: ★ ${repo.stars}</p>
+                <p>Language: ${repo.language}</p>
+                <a href="${repo.url}" target="_blank">View Repository</a>
+            `;
+            projectReposDiv.appendChild(repoCard);
         });
 
-        // Project Videos
+        // YouTube Videos
         projectVideosDiv.innerHTML = '<h3>YouTube Videos</h3>';
         data.wholeProjectVideos.forEach(video => {
-            const videoDiv = document.createElement('div');
-            videoDiv.innerHTML = `<a href="${video.url}" target="_blank">${video.title}</a> - ${video.channel}`;
-            projectVideosDiv.appendChild(videoDiv);
+            const videoCard = document.createElement('div');
+            videoCard.className = 'card';
+            videoCard.innerHTML = `
+                <h3>${video.title}</h3>
+                <p>${video.description}</p>
+                <p>Channel: ${video.channel}</p>
+                <a href="${video.url}" target="_blank">Watch Video</a>
+            `;
+            projectVideosDiv.appendChild(videoCard);
         });
 
         // Feature Details
         featureDetailsDiv.innerHTML = '<h3>Features</h3>';
         data.features.forEach(feature => {
-            const featureDiv = document.createElement('div');
-            featureDiv.innerHTML = `<h4>${feature}</h4>`;
+            const featureCard = document.createElement('div');
+            featureCard.className = 'card';
+            featureCard.innerHTML = `
+                <h3>${feature}</h3>
+                <p>GitHub Repositories:</p>
+            `;
 
             const reposForFeature = data.featureRepos[feature];
-            const videosForFeature = data.featureVideos[feature];
-            const codeForFeature = data.featureCodes[feature];
-
-            featureDiv.innerHTML += '<h5>Repositories</h5>';
             reposForFeature.forEach(repo => {
-                featureDiv.innerHTML += `<div><a href="${repo.url}" target="_blank">${repo.name}</a> - ★ ${repo.stars}</div>`;
+                featureCard.innerHTML += `
+                    <p><a href="${repo.url}" target="_blank">${repo.name}</a> - ★ ${repo.stars}</p>
+                `;
             });
 
-            featureDiv.innerHTML += '<h5>Videos</h5>';
+            const videosForFeature = data.featureVideos[feature];
+            featureCard.innerHTML += '<p>YouTube Videos:</p>';
             videosForFeature.forEach(video => {
-                featureDiv.innerHTML += `<div><a href="${video.url}" target="_blank">${video.title}</a> - ${video.channel}</div>`;
+                featureCard.innerHTML += `
+                    <p><a href="${video.url}" target="_blank">${video.title}</a></p>
+                `;
             });
 
-            featureDiv.innerHTML += '<h5>Code Snippet</h5>';
-            featureDiv.innerHTML += `<pre>${codeForFeature}</pre>`;
+            const codeForFeature = data.featureCodes[feature];
+            featureCard.innerHTML += `
+                <h4>Code Snippet:</h4>
+                <pre>${codeForFeature}</pre>
+            `;
 
-            featureDetailsDiv.appendChild(featureDiv);
+            featureDetailsDiv.appendChild(featureCard);
         });
     } catch (error) {
         alert('Error generating project data.');
