@@ -2,22 +2,34 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const axios = require('axios');
+const path = require('path');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 // Load environment variables
 dotenv.config();
-
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use(express.static('frontend/public'));
+app.use(express.static(path.join(__dirname, '../frontend/public')));
 
-// Add a route to serve the index.ejs file
-app.set('views', 'frontend');
+// Set views directory and view engine
+app.set('views', path.join(__dirname, '../frontend'));
 app.set('view engine', 'ejs');
 
+// Root route
 app.get('/', (req, res) => {
     res.render('index');
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).send('Something broke!');
+});
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).send('Something broke!');
 });
 
 if (!process.env.GOOGLE_API_KEY || !process.env.GITHUB_TOKEN || !process.env.YOUTUBE_API_KEY) {
