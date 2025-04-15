@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Project Generator</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>AI Project Generator</h1>
+        <form id="generateForm">
+            <label for="idea">Enter Your Project Idea:</label>
+            <input type="text" id="idea" name="idea" placeholder="E.g., Social Media Dashboard" required>
+            
+            <label for="techStack">Select Tech Stack:</label>
+            <select id="techStack" name="techStack">
+                <option value="MERN Stack">MERN Stack</option>
+                <option value="Python/Django">Python/Django</option>
+                <option value="Java/Spring Boot">Java/Spring Boot</option>
+            </select>
+            <button type="submit">Generate</button>
+        </form>
+
+        <div id="results" class="hidden">
+            <h2>Results</h2>
+            <div id="projectRepos"></div>
+            <div id="projectVideos"></div>
+            <div id="featureDetails"></div>
+        </div>
+    </div>
+
+    <script src="/js/script.js"></script>
+</body>
+</html>
