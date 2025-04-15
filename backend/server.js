@@ -1,8 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
 const axios = require('axios');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 // Load environment variables
 dotenv.config();
@@ -10,8 +10,16 @@ dotenv.config();
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(express.static('frontend/public'));
 
-// Check for required API keys
+// Add a route to serve the index.ejs file
+app.set('views', 'frontend');
+app.set('view engine', 'ejs');
+
+app.get('/', (req, res) => {
+    res.render('index');
+});
+
 if (!process.env.GOOGLE_API_KEY || !process.env.GITHUB_TOKEN || !process.env.YOUTUBE_API_KEY) {
     console.error("❌ Missing API keys in .env");
     process.exit(1);
@@ -21,21 +29,23 @@ if (!process.env.GOOGLE_API_KEY || !process.env.GITHUB_TOKEN || !process.env.YOU
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
 const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
-// Helper function to clean and optimize feature queries
-const cleanFeatureQuery = (feature) => {
-    return feature
-        .replace(/[:()]/g, '') // Remove special characters
-        .replace(/\s+/g, ' ') // Replace multiple spaces with a single space
+// Clean and optimize search query
+const cleanFeatureQuery = (feature, techStack = '') => {
+    const cleanedFeature = feature
+        .replace(/[:()]/g, '')
+        .replace(/\s+/g, ' ')
         .trim()
-        .split(' ') // Split into words
-        .slice(0, 5) // Limit to 5 core keywords
-        .join(' '); // Join back into a query
+        .split(' ')
+        .slice(0, 5)
+        .join(' ');
+
+    return `${cleanedFeature} ${techStack}`;
 };
 
-// GitHub API Helper Function
-const fetchGitHubRepos = async (feature) => {
+// GitHub API Search
+const fetchGitHubRepos = async (feature, techStack) => {
     try {
-        const query = cleanFeatureQuery(feature);
+        const query = cleanFeatureQuery(feature, techStack);
         console.log(`GitHub Query: "${query}"`);
 
         const response = await axios.get(`https://api.github.com/search/repositories`, {
@@ -47,7 +57,7 @@ const fetchGitHubRepos = async (feature) => {
                 q: query,
                 sort: 'stars',
                 order: 'desc',
-                per_page: 5, // Limit to top 5 repos
+                per_page: 5,
             },
         });
 
@@ -64,17 +74,19 @@ const fetchGitHubRepos = async (feature) => {
     }
 };
 
-// YouTube API Helper Function
-const fetchYouTubeVideos = async (query) => {
+// YouTube API Search
+const fetchYouTubeVideos = async (query, techStack) => {
     try {
-        console.log(`YouTube Query: "${query}"`);
+        const fullQuery = cleanFeatureQuery(query, techStack);
+        console.log(`YouTube Query: "${fullQuery}"`);
+
         const response = await axios.get('https://www.googleapis.com/youtube/v3/search', {
             params: {
                 key: process.env.YOUTUBE_API_KEY,
-                q: query,
+                q: fullQuery,
                 part: 'snippet',
                 type: 'video',
-                maxResults: 5, // Limit to top 5 videos
+                maxResults: 5,
             },
         });
 
@@ -91,83 +103,114 @@ const fetchYouTubeVideos = async (query) => {
     }
 };
 
-// POST Endpoint
+// Generate Code Snippet for Feature
+const generateCodeForFeature = async (feature, techStack) => {
+    try {
+        const prompt = `
+            Project Feature: "${feature}"
+            Tech Stack: "${techStack}"
+            Please generate a basic code snippet (1–2 functions) that demonstrates the implementation of this feature. 
+            Keep it simple and relevant to the tech stack. Focus on creating a small code snippet that shows the essence of the feature.
+
+            Example:
+            Feature: User Authentication
+            Tech Stack: MERN
+            Expected Output: A simple Express.js route for login and token generation.
+
+            Feature: "${feature}"
+            Tech Stack: "${techStack}"
+        `;
+
+        const result = await model.generateContent(prompt);
+        const code = result?.response?.text();
+        return code ? code : 'No code generated for this feature.';
+    } catch (error) {
+        console.error('❌ Code Generation Error:', error.message || error);
+        return 'Error generating code for this feature.';
+    }
+};
+
+// Generate Project Data
 app.post('/generate', async (req, res) => {
-    const { idea, mode } = req.body;
+    const { idea, techStack = 'MERN Stack' } = req.body;
 
     if (!idea || idea.trim() === '') {
         return res.status(400).json({ error: 'Project idea is required' });
     }
 
     try {
-        if (mode === 'features') {
-            // Updated prompt for concise feature generation
-            const prompt = `
-                Project Idea: "${idea}"
-                Please break down this project into core features, providing short feature titles (preferably 3–6 words per feature). Avoid including long descriptions or implementation details.
+        // First, try fetching the whole project data
+        const repos = await fetchGitHubRepos(idea, techStack);
+        const videos = await fetchYouTubeVideos(idea, techStack);
 
-                Example Output:
-                * User Authentication
-                * Resume Template Selection
-                * AI Content Generation
-                * Skill Extraction
-                * Export Options
+        // Generate features data
+        const prompt = `
+            Project Idea: "${idea}"
+            Tech Stack: "${techStack}"
+            Please break down this project idea into key features. Provide a list of 3–6 words per feature (short titles only).
+            Avoid detailed descriptions or technical implementation.
+            Examples:
+            * User Authentication
+            * Dashboard Analytics
+            * File Upload with Preview
+            * Admin Panel Access
+        `;
 
-                Provide the output in a clean and concise bullet-point format.
-            `;
-            const result = await model.generateContent(prompt);
-            const featuresText = result?.response?.text();
+        const result = await model.generateContent(prompt);
+        const featuresText = result?.response?.text();
 
-            console.log('Gemini API Features Response:', featuresText);
-
-            if (!featuresText) {
-                return res.status(500).json({ error: 'Failed to generate features from Gemini API' });
-            }
-
-            // Updated Parsing Logic
-            const features = featuresText
-                .split('\n')
-                .filter(line => line.trim().startsWith('*')) // Match lines starting with '*'
-                .map(line => line.replace(/^\*\s*/, '').trim()); // Remove '*' and extra spaces
-
-            console.log('Extracted Features:', features);
-
-            if (features.length === 0) {
-                return res.status(200).json({
-                    message: 'No features could be generated for the provided idea.',
-                    features: [],
-                    featureRepos: {},
-                    featureVideos: {}
-                });
-            }
-
-            // Fetch GitHub repos and YouTube videos for each feature
-            const featureRepos = {};
-            const featureVideos = {};
-            for (const feature of features) {
-                console.log(`Fetching repos for feature: ${feature}`);
-                const repos = await fetchGitHubRepos(feature);
-                featureRepos[feature] = repos.length > 0 ? repos : [{ message: 'No repositories found for this feature.' }];
-
-                console.log(`Fetching videos for feature: ${feature}`);
-                const videos = await fetchYouTubeVideos(feature);
-                featureVideos[feature] = videos.length > 0 ? videos : [{ message: 'No videos found for this feature.' }];
-            }
-
-            return res.json({ features, featureRepos, featureVideos });
-        } else if (mode === 'whole') {
-            // Behavior 1: Search for whole project repositories and videos
-            const wholeProjectRepos = await fetchGitHubRepos(idea);
-            const wholeProjectVideos = await fetchYouTubeVideos(idea);
-            return res.json({ wholeProjectRepos, wholeProjectVideos });
-        } else {
-            return res.status(400).json({ error: 'Invalid mode. Use "whole" or "features".' });
+        if (!featuresText) {
+            return res.status(500).json({ error: 'Failed to generate features from Gemini API' });
         }
+
+        const features = featuresText
+            .split('\n')
+            .filter(line => line.trim().startsWith('*'))
+            .map(line => line.replace(/^\*\s*/, '').trim());
+
+        if (features.length === 0) {
+            return res.status(200).json({
+                message: 'No features could be generated for the provided idea.',
+                features: ['Example Feature: User Login', 'Example Feature: Admin Panel'],
+                featureRepos: {},
+                featureVideos: {},
+                featureCodes: {}
+            });
+        }
+
+        // Prepare data for features
+        const featureRepos = {};
+        const featureVideos = {};
+        const featureCodes = {};
+
+        // Fetch GitHub repos, YouTube videos, and generate code for each feature
+        for (const feature of features) {
+            const reposForFeature = await fetchGitHubRepos(feature, techStack);
+            featureRepos[feature] = reposForFeature.length > 0 ? reposForFeature : [{ message: 'No repositories found for this feature.' }];
+
+            const videosForFeature = await fetchYouTubeVideos(feature, techStack);
+            featureVideos[feature] = videosForFeature.length > 0 ? videosForFeature : [{ message: 'No videos found for this feature.' }];
+
+            const codeForFeature = await generateCodeForFeature(feature, techStack);
+            featureCodes[feature] = codeForFeature;
+        }
+
+        // Return both whole project data (if any) and feature data
+        return res.json({
+            wholeProjectRepos: repos.length > 0 ? repos : [{ message: 'No project data found.' }],
+            wholeProjectVideos: videos.length > 0 ? videos : [{ message: 'No project videos found.' }],
+            features,
+            featureRepos,
+            featureVideos,
+            featureCodes
+        });
+
     } catch (error) {
         console.error('❌ Error:', error.message || error);
-        res.status(500).json({ error: 'Server error' });
+        return res.status(500).json({ error: 'Server error' });
     }
 });
+
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
