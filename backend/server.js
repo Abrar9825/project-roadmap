@@ -16,30 +16,19 @@ app.use(express.static(path.join(__dirname, '../frontend/public')));
 app.set('views', path.join(__dirname, '../frontend'));
 app.set('view engine', 'ejs');
 
-// Root route
-app.get('/', (req, res) => {
-    res.render('index');
-});
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).send('Something broke!');
-});
-// Error handling middleware
-app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).send('Something broke!');
-});
-
+// Initialize Gemini AI Model
 if (!process.env.GOOGLE_API_KEY || !process.env.GITHUB_TOKEN || !process.env.YOUTUBE_API_KEY) {
     console.error("❌ Missing API keys in .env");
     process.exit(1);
 }
 
-// Initialize Gemini model
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
 const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+// Root route
+app.get('/', (req, res) => {
+    res.render('index');
+});
 
 // Clean and optimize search query
 const cleanFeatureQuery = (feature, techStack = '') => {
@@ -53,6 +42,48 @@ const cleanFeatureQuery = (feature, techStack = '') => {
 
     return `${cleanedFeature} ${techStack}`;
 };
+
+// Detect Tech Stack and Suggest Alternatives
+app.post('/detect-techstack', async (req, res) => {
+    const { idea } = req.body;
+
+    if (!idea || idea.trim() === '') {
+        return res.status(400).json({ error: 'Project idea is required' });
+    }
+
+    try {
+        const prompt = `
+            Analyze this project idea: "${idea}"
+            1. Identify if any tech stack is already mentioned.
+            2. If yes, extract it (e.g., Django, MERN, Flask, etc.).
+            3. Suggest 2–3 suitable full tech stack combinations for the project idea.
+            4. Return response in this format:
+            {
+              "detectedStack": "Tech Stack Name",
+              "suggestions": [
+                "Tech Stack Combination 1",
+                "Tech Stack Combination 2",
+                "Tech Stack Combination 3"
+              ]
+            }
+        `;
+
+        const result = await model.generateContent(prompt);
+        const responseText = result?.response?.text();
+
+        const matched = responseText.match(/\{[\s\S]*\}/);
+        if (!matched) {
+            return res.status(500).json({ error: 'Invalid response from Gemini AI' });
+        }
+
+        const techStackData = JSON.parse(matched[0]);
+        return res.json(techStackData);
+
+    } catch (error) {
+        console.error('❌ Tech Stack Detection Error:', error.message || error);
+        return res.status(500).json({ error: 'Error detecting tech stack' });
+    }
+});
 
 // GitHub API Search
 const fetchGitHubRepos = async (feature, techStack) => {
@@ -151,16 +182,13 @@ app.post('/generate', async (req, res) => {
     }
 
     try {
-        // First, try fetching the whole project data
         const repos = await fetchGitHubRepos(idea, techStack);
         const videos = await fetchYouTubeVideos(idea, techStack);
 
-        // Generate features data
         const prompt = `
             Project Idea: "${idea}"
             Tech Stack: "${techStack}"
             Please break down this project idea into key features. Provide a list of 3–6 words per feature (short titles only).
-            Avoid detailed descriptions or technical implementation.
             Examples:
             * User Authentication
             * Dashboard Analytics
@@ -172,7 +200,7 @@ app.post('/generate', async (req, res) => {
         const featuresText = result?.response?.text();
 
         if (!featuresText) {
-            return res.status(500).json({ error: 'Failed to generate features from Gemini API' });
+            return res.status(500).json({ error: 'Failed to generate features from Gemini AI' });
         }
 
         const features = featuresText
@@ -190,12 +218,10 @@ app.post('/generate', async (req, res) => {
             });
         }
 
-        // Prepare data for features
         const featureRepos = {};
         const featureVideos = {};
         const featureCodes = {};
 
-        // Fetch GitHub repos, YouTube videos, and generate code for each feature
         for (const feature of features) {
             const reposForFeature = await fetchGitHubRepos(feature, techStack);
             featureRepos[feature] = reposForFeature.length > 0 ? reposForFeature : [{ message: 'No repositories found for this feature.' }];
@@ -207,7 +233,6 @@ app.post('/generate', async (req, res) => {
             featureCodes[feature] = codeForFeature;
         }
 
-        // Return both whole project data (if any) and feature data
         return res.json({
             wholeProjectRepos: repos.length > 0 ? repos : [{ message: 'No project data found.' }],
             wholeProjectVideos: videos.length > 0 ? videos : [{ message: 'No project videos found.' }],
@@ -222,7 +247,6 @@ app.post('/generate', async (req, res) => {
         return res.status(500).json({ error: 'Server error' });
     }
 });
-
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
