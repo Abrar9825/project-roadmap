@@ -1,3 +1,68 @@
+document.getElementById('detectStack').addEventListener('click', async () => {
+    const idea = document.getElementById('idea').value;
+    const stackType = document.querySelector('input[name="stackType"]:checked')?.value || 'fullstack';
+    // 💡 Get selected stackType
+
+    const detectedStackSection = document.getElementById('detectedStackSection');
+    const detectedStack = document.getElementById('detectedStack');
+    const suggestedStacks = document.getElementById('suggestedStacks');
+    const techStackSelect = document.getElementById('techStack');
+
+    if (!idea.trim()) {
+        alert('Please enter a project idea.');
+        return;
+    }
+
+    try {
+        // 🔥 Send idea + selected stackType to backend
+        const response = await fetch('/detect-techstack', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ idea, stackType }),
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+            alert(data.error);
+            return;
+        }
+
+        detectedStackSection.classList.remove('hidden');
+        detectedStack.innerText = data.detectedStack || 'None';
+
+        suggestedStacks.innerHTML = '';
+        techStackSelect.innerHTML = '';
+
+        if (data.suggestions && data.suggestions.length > 0) {
+            data.suggestions.forEach((stack) => {
+                const li = document.createElement('li');
+                li.innerText = stack;
+                suggestedStacks.appendChild(li);
+
+                const option = document.createElement('option');
+                option.value = stack;
+                option.innerText = stack;
+                techStackSelect.appendChild(option);
+            });
+        } else {
+            const li = document.createElement('li');
+            li.innerText = 'No suggestions available.';
+            suggestedStacks.appendChild(li);
+
+            const defaultOption = document.createElement('option');
+            defaultOption.value = 'MERN Stack';
+            defaultOption.innerText = 'MERN Stack';
+            techStackSelect.appendChild(defaultOption);
+        }
+    } catch (error) {
+        console.error('Error detecting tech stack:', error);
+        alert('An error occurred while detecting the tech stack.');
+    }
+});
+
 document.getElementById('generateForm').addEventListener('submit', async (e) => {
     e.preventDefault();
 

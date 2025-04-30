@@ -14,17 +14,37 @@
             <label for="idea">Enter Your Project Idea:</label>
             <input type="text" id="idea" name="idea" placeholder="E.g., Social Media Dashboard" required>
             
+            <button type="button" id="detectStack">Detect Tech Stack</button>
+
+            <div id="detectedStackSection" class="hidden">
+                <h3>Detected Tech Stack</h3>
+                <p id="detectedStack">None</p>
+
+                <h3>Suggested Tech Stacks</h3>
+                <ul id="suggestedStacks"></ul>
+            </div>
+
             <label for="techStack">Select Tech Stack:</label>
             <select id="techStack" name="techStack">
-                <option value="MERN Stack">MERN Stack</option>
-                <option value="Python/Django">Python/Django</option>
-                <option value="Java/Spring Boot">Java/Spring Boot</option>
+                <!-- Options will be dynamically populated -->
             </select>
             <button type="submit">Generate</button>
         </form>
 
         <div id="results" class="results-section hidden">
             <h2>Results</h2>
+
+            <!-- YouTube Query -->
+            <div id="youtubeQuerySection">
+                <h3>YouTube Query</h3>
+                <p id="youtubeQuery"></p>
+            </div>
+
+            <!-- GitHub Query -->
+            <div id="githubQuerySection">
+                <h3>GitHub Query</h3>
+                <p id="githubQuery"></p>
+            </div>
 
             <!-- GitHub Repositories -->
             <div id="projectRepos">
