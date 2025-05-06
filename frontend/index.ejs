@@ -3,26 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Project Generator</title>
+    <title>AI-Powered Project Generator</title>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
 </head>
 <body>
     <div class="container">
-        <h1>AI Project Generator</h1>
+        <h1>AI-Powered Project Generator</h1>
         <form id="generateForm">
             <label for="idea">Enter Your Project Idea:</label>
             <input type="text" id="idea" name="idea" placeholder="E.g., Social Media Dashboard" required>
-            
-            <label for="techStack">Select Tech Stack:</label>
-            <select id="techStack" name="techStack">
-                <option value="MERN Stack">MERN Stack</option>
-                <option value="Python/Django">Python/Django</option>
-                <option value="Java/Spring Boot">Java/Spring Boot</option>
-            </select>
-            <button type="submit">Generate</button>
+
+            <!-- Project Type Selection -->
+            <div class="section">
+                <h3>Select Project Type:</h3>
+                <label>
+                    <input type="radio" name="projectType" value="Frontend" required> Frontend
+                </label>
+                <label>
+                    <input type="radio" name="projectType" value="Backend" required> Backend
+                </label>
+                <label>
+                    <input type="radio" name="projectType" value="Fullstack" required> Fullstack
+                </label>
+            </div>
+
+            <!-- Generate Tech Stack Button -->
+            <div class="section">
+                <button type="button" id="generateStackButton">Generate Tech Stack</button>
+            </div>
+
+            <!-- Tech Stack Selection Section -->
+            <div class="section" id="stackSection" style="display:none;">
+                <h3>Select a Suggested Tech Stack:</h3>
+                <div id="stackCards">
+                    <!-- Stack options will be inserted here dynamically -->
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" id="submitButton" disabled>Generate Project</button>
         </form>
 
+        <!-- Results Section -->
         <div id="results" class="results-section hidden">
             <h2>Results</h2>
 

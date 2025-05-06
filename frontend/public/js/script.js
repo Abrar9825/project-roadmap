@@ -1,8 +1,97 @@
+// Event listener for generating tech stack
+document.getElementById('generateStackButton').addEventListener('click', async () => {
+    const ideaInput = document.getElementById('idea').value;
+    const projectType = document.querySelector('input[name="projectType"]:checked')?.value;
+
+    if (!ideaInput.trim()) {
+        alert('Please enter a project idea.');
+        return;
+    }
+
+    if (!projectType) {
+        alert('Please select a project type.');
+        return;
+    }
+
+    try {
+        // Disable the button while fetching
+        const generateStackButton = document.getElementById('generateStackButton');
+        generateStackButton.disabled = true;
+        generateStackButton.textContent = 'Generating...';
+
+        const response = await fetch('/detect-techstack', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ idea: ideaInput, projectType }),
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+            alert(data.error);
+            generateStackButton.disabled = false;
+            generateStackButton.textContent = 'Generate Tech Stack';
+            return;
+        }
+
+        // Populate stack options dynamically
+        setStackOptions(data.suggestions);
+
+        // Enable the submit button after stacks are generated
+        document.getElementById('submitButton').disabled = false;
+
+        // Update button text back
+        generateStackButton.disabled = false;
+        generateStackButton.textContent = 'Generate Tech Stack';
+    } catch (error) {
+        alert('Error generating tech stack suggestions.');
+        console.error(error);
+
+        // Reset the button state
+        const generateStackButton = document.getElementById('generateStackButton');
+        generateStackButton.disabled = false;
+        generateStackButton.textContent = 'Generate Tech Stack';
+    }
+});
+
+// Populate stack options dynamically
+function setStackOptions(stackOptions) {
+    const stackSection = document.getElementById('stackSection');
+    const stackCardsDiv = document.getElementById('stackCards');
+
+    stackCardsDiv.innerHTML = ''; // Clear previous options
+
+    if (stackOptions && stackOptions.length > 0) {
+        stackOptions.forEach((stack, index) => {
+            const stackOptionHTML = `
+                <label class="card">
+                    <input type="radio" name="stack" value="${stack}" ${index === 0 ? "checked" : ""}/> ${stack}
+                </label>
+            `;
+            stackCardsDiv.innerHTML += stackOptionHTML;
+        });
+
+        stackSection.style.display = 'block';
+    } else {
+        stackSection.style.display = 'none';
+        alert('No tech stack suggestions available.');
+    }
+}
+
+// Event listener for form submission
 document.getElementById('generateForm').addEventListener('submit', async (e) => {
     e.preventDefault();
 
     const idea = document.getElementById('idea').value;
-    const techStack = document.getElementById('techStack').value;
+    const projectType = document.querySelector('input[name="projectType"]:checked').value;
+    const techStack = getSelectedStack();
+
+    if (!techStack) {
+        alert('Please select a tech stack.');
+        return;
+    }
 
     const resultsDiv = document.getElementById('results');
     const projectReposDiv = document.getElementById('projectRepos');
@@ -20,7 +109,7 @@ document.getElementById('generateForm').addEventListener('submit', async (e) => 
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ idea, techStack }),
+            body: JSON.stringify({ idea, projectType, techStack }),
         });
 
         const data = await response.json();
@@ -72,29 +161,58 @@ document.getElementById('generateForm').addEventListener('submit', async (e) => 
 
             const reposForFeature = data.featureRepos[feature];
             reposForFeature.forEach(repo => {
-                featureCard.innerHTML += `
-                    <p><a href="${repo.url}" target="_blank">${repo.name}</a> - ★ ${repo.stars}</p>
-                `;
+                if (repo.url) {
+                    featureCard.innerHTML += `
+                        <p><a href="${repo.url}" target="_blank">${repo.name}</a> - ★ ${repo.stars}</p>
+                    `;
+                } else {
+                    featureCard.innerHTML += `<p>${repo.message}</p>`;
+                }
             });
 
             const videosForFeature = data.featureVideos[feature];
             featureCard.innerHTML += '<p>YouTube Videos:</p>';
             videosForFeature.forEach(video => {
-                featureCard.innerHTML += `
-                    <p><a href="${video.url}" target="_blank">${video.title}</a></p>
-                `;
+                if (video.url) {
+                    featureCard.innerHTML += `
+                        <p><a href="${video.url}" target="_blank">${video.title}</a></p>
+                    `;
+                } else {
+                    featureCard.innerHTML += `<p>${video.message}</p>`;
+                }
             });
 
             const codeForFeature = data.featureCodes[feature];
             featureCard.innerHTML += `
                 <h4>Code Snippet:</h4>
-                <pre>${codeForFeature}</pre>
+                <pre><code class="language-javascript">${escapeHTML(codeForFeature)}</code></pre>
             `;
 
             featureDetailsDiv.appendChild(featureCard);
+        });
+
+        // Re-apply syntax highlighting for dynamically added code snippets
+        document.querySelectorAll('pre code').forEach(block => {
+            hljs.highlightElement(block);
         });
     } catch (error) {
         alert('Error generating project data.');
         console.error(error);
     }
 });
+
+// Get selected tech stack
+function getSelectedStack() {
+    const selectedStack = document.querySelector('input[name="stack"]:checked');
+    return selectedStack ? selectedStack.value : null;
+}
+
+// Escape HTML for safe rendering
+function escapeHTML(str) {
+    return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
