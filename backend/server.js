@@ -45,7 +45,7 @@ const cleanFeatureQuery = (feature, techStack = '') => {
 
 // Detect Tech Stack and Suggest Alternatives
 app.post('/detect-techstack', async (req, res) => {
-    const { idea } = req.body;
+    const { idea, projectType } = req.body;
 
     if (!idea || idea.trim() === '') {
         return res.status(400).json({ error: 'Project idea is required' });
@@ -55,16 +55,15 @@ app.post('/detect-techstack', async (req, res) => {
         const prompt = `
             Analyze this project idea: "${idea}"
             1. Identify if any tech stack is already mentioned.
-            2. If yes, extract it (e.g., Django, MERN, Flask, etc.).
-            3. Suggest 2–3 suitable full tech stack combinations for the project idea.
-            4. Return response in this format:
+            2. Suggest the best 3 suitable ${projectType || 'Fullstack'} tech stack combinations for the project idea.
+            3. Return response in this format:
             {
-              "detectedStack": "Tech Stack Name",
-              "suggestions": [
-                "Tech Stack Combination 1",
-                "Tech Stack Combination 2",
-                "Tech Stack Combination 3"
-              ]
+                "detectedStack": "Tech Stack Name",
+                "suggestions": [
+                    "Tech Stack Combination 1",
+                    "Tech Stack Combination 2",
+                    "Tech Stack Combination 3"
+                ]
             }
         `;
 
@@ -153,12 +152,7 @@ const generateCodeForFeature = async (feature, techStack) => {
             Project Feature: "${feature}"
             Tech Stack: "${techStack}"
             Please generate a basic code snippet (1–2 functions) that demonstrates the implementation of this feature. 
-            Keep it simple and relevant to the tech stack. Focus on creating a small code snippet that shows the essence of the feature.
-
-            Example:
-            Feature: User Authentication
-            Tech Stack: MERN
-            Expected Output: A simple Express.js route for login and token generation.
+            Keep it simple and relevant to the tech stack.
 
             Feature: "${feature}"
             Tech Stack: "${techStack}"
@@ -175,7 +169,7 @@ const generateCodeForFeature = async (feature, techStack) => {
 
 // Generate Project Data
 app.post('/generate', async (req, res) => {
-    const { idea, techStack = 'MERN Stack' } = req.body;
+    const { idea, techStack, projectType } = req.body;
 
     if (!idea || idea.trim() === '') {
         return res.status(400).json({ error: 'Project idea is required' });
@@ -188,12 +182,8 @@ app.post('/generate', async (req, res) => {
         const prompt = `
             Project Idea: "${idea}"
             Tech Stack: "${techStack}"
-            Please break down this project idea into key features. Provide a list of 3–6 words per feature (short titles only).
-            Examples:
-            * User Authentication
-            * Dashboard Analytics
-            * File Upload with Preview
-            * Admin Panel Access
+            Project Type: "${projectType || 'Fullstack'}"
+            Break down this project idea into key features. Provide a list of 3–6 words per feature (short titles only).
         `;
 
         const result = await model.generateContent(prompt);
@@ -208,34 +198,19 @@ app.post('/generate', async (req, res) => {
             .filter(line => line.trim().startsWith('*'))
             .map(line => line.replace(/^\*\s*/, '').trim());
 
-        if (features.length === 0) {
-            return res.status(200).json({
-                message: 'No features could be generated for the provided idea.',
-                features: ['Example Feature: User Login', 'Example Feature: Admin Panel'],
-                featureRepos: {},
-                featureVideos: {},
-                featureCodes: {}
-            });
-        }
-
         const featureRepos = {};
         const featureVideos = {};
         const featureCodes = {};
 
         for (const feature of features) {
-            const reposForFeature = await fetchGitHubRepos(feature, techStack);
-            featureRepos[feature] = reposForFeature.length > 0 ? reposForFeature : [{ message: 'No repositories found for this feature.' }];
-
-            const videosForFeature = await fetchYouTubeVideos(feature, techStack);
-            featureVideos[feature] = videosForFeature.length > 0 ? videosForFeature : [{ message: 'No videos found for this feature.' }];
-
-            const codeForFeature = await generateCodeForFeature(feature, techStack);
-            featureCodes[feature] = codeForFeature;
+            featureRepos[feature] = await fetchGitHubRepos(feature, techStack);
+            featureVideos[feature] = await fetchYouTubeVideos(feature, techStack);
+            featureCodes[feature] = await generateCodeForFeature(feature, techStack);
         }
 
         return res.json({
-            wholeProjectRepos: repos.length > 0 ? repos : [{ message: 'No project data found.' }],
-            wholeProjectVideos: videos.length > 0 ? videos : [{ message: 'No project videos found.' }],
+            wholeProjectRepos: repos,
+            wholeProjectVideos: videos,
             features,
             featureRepos,
             featureVideos,
