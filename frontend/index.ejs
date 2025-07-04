@@ -2,72 +2,393 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI-Powered Project Generator</title>
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/css/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <title>Project AI Generator</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <style>
+        :root {
+            --primary: #0a0a4d;
+            --gradient: linear-gradient(135deg, #0a0a4d 0%, #2563eb 100%);
+            --accent: #2563eb;
+            --text: #18181b;
+            --border: #e5e7eb;
+            --bg: #f8fafc;
+            --card-bg: #fff;
+            --shadow: 0 4px 32px 0 rgba(10, 10, 77, 0.08);
+        }
+        html, body {
+            font-family: 'Inter', Arial, sans-serif;
+            background: var(--bg);
+            margin: 0;
+            padding: 0;
+            color: var(--text);
+            min-height: 100vh;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+        }
+        header {
+            background: var(--gradient);
+            color: #fff;
+            padding: 2rem 0 1.2rem 0;
+            text-align: center;
+            box-shadow: 0 2px 24px 0 rgba(10,10,77,0.17);
+        }
+        header h1 {
+            font-size: 2.5rem;
+            margin: 0 0 0.5rem 0;
+            font-weight: 700;
+            letter-spacing: -1px;
+        }
+        header p {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 400;
+        }
+        main {
+            flex: 1;
+            max-width: 880px;
+            margin: 2rem auto 1rem auto;
+            padding: 0 1rem;
+        }
+        .card {
+            background: var(--card-bg);
+            border-radius: 1.3rem;
+            box-shadow: var(--shadow);
+            padding: 2.2rem 2rem;
+            margin-bottom: 2rem;
+            border: 1.5px solid #e5e7eb;
+        }
+        .card h2 {
+            margin-top: 0;
+            font-weight: 700;
+            font-size: 1.7rem;
+            color: var(--primary);
+        }
+        form label {
+            display: block;
+            font-weight: 600;
+            margin: 0.7rem 0 0.2rem 0;
+        }
+        .input-row {
+            display: flex;
+            gap: 1.2rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        input[type=text], textarea {
+            padding: 0.7rem 1rem;
+            border: 1.5px solid var(--border);
+            border-radius: 0.7rem;
+            font-size: 1.07rem;
+            width: 100%;
+            max-width: 370px;
+            background: #f4f7fa;
+            transition: border 0.2s;
+        }
+        input[type=text]:focus, textarea:focus {
+            outline: none;
+            border: 1.5px solid var(--accent);
+        }
+        .project-types {
+            display: flex;
+            gap: 1.2rem;
+            margin-top: 0.2rem;
+            margin-bottom: 1rem;
+        }
+        .project-type-radio {
+            display: flex;
+            align-items: center;
+            background: #f4f7fa;
+            border-radius: 0.7rem;
+            padding: 0.4rem 1rem;
+            border: 1.5px solid var(--border);
+            cursor: pointer;
+            font-weight: 500;
+            transition: border 0.16s, background 0.16s;
+        }
+        .project-type-radio input {
+            margin-right: 0.6em;
+        }
+        .project-type-radio input:checked + span {
+            color: var(--primary);
+        }
+        .project-type-radio input:checked {
+            accent-color: var(--primary);
+        }
+        .project-type-radio.selected {
+            border: 1.5px solid var(--accent);
+            background: #e0e7ff;
+        }
+        .btn {
+            background: var(--gradient);
+            color: #fff;
+            padding: 0.85rem 2.2rem;
+            border: none;
+            border-radius: 0.9rem;
+            font-size: 1.14rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 0.7rem 0.2rem 0 0;
+            box-shadow: 0 2px 16px 0 rgba(37,99,235,0.09);
+            transition: background 0.18s, box-shadow 0.18s, transform 0.18s;
+        }
+        .btn:active {
+            transform: scale(0.97);
+        }
+        .btn:disabled {
+            background: #b6c3f9;
+            cursor: not-allowed;
+        }
+        #loader {
+            text-align: center;
+            margin: 2rem 0 1rem 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .spinner {
+            border: 5px solid #e6e9f9;
+            border-top: 5px solid var(--primary);
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            animation: spin 1.1s linear infinite;
+            margin-bottom: 0.7rem;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .loader-text {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: var(--primary);
+        }
+        #error {
+            color: #c70039;
+            background: #ffe8ec;
+            padding: 0.8rem 1.2rem;
+            border-radius: 0.6rem;
+            font-weight: 600;
+            margin: 1rem 0 1.2rem 0;
+            display: none;
+        }
+        #error:not(.hidden) {
+            display: block;
+        }
+        /* Stack suggestions */
+        #stackSection {
+            display: none;
+            margin-top: 1.3rem;
+        }
+        #stackSection h3 {
+            margin: 0 0 0.7rem 0;
+            color: var(--primary);
+            font-size: 1.15rem;
+            font-weight: 700;
+        }
+        #stackCards {
+            display: flex;
+            gap: 1.3rem;
+            flex-wrap: wrap;
+        }
+        .stack-card {
+            background: var(--gradient);
+            color: #fff;
+            padding: 0.85rem 1.3rem;
+            border-radius: 0.8rem;
+            font-size: 1.13rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 2px 12px 0 rgba(37,99,235,0.07);
+            border: 2.5px solid transparent;
+            transition: border 0.16s, box-shadow 0.16s, background 0.16s;
+        }
+        .stack-card.selected {
+            border: 2.5px solid #fff;
+            box-shadow: 0 4px 24px 0 rgba(10,10,77,0.14);
+            background: #1e2b84;
+        }
+        /* Results */
+        #results {
+            margin-top: 3rem;
+            display: none;
+        }
+        #results:not(.hidden) {
+            display: block;
+        }
+        .section-title {
+            font-size: 1.35rem;
+            color: var(--primary);
+            font-weight: 700;
+            margin: 0 0 1.2rem 0;
+        }
+        .repo-list, .video-list {
+            display: flex;
+            gap: 1.2rem;
+            flex-wrap: wrap;
+        }
+        .repo-card, .video-card {
+            background: #f4f7fa;
+            border-radius: 0.9rem;
+            padding: 1rem 1.1rem;
+            box-shadow: 0 1px 6px 0 rgba(37,99,235,0.08);
+            min-width: 210px;
+            max-width: 260px;
+            margin-bottom: 0.8rem;
+            border: 1.5px solid #e0e7ff;
+        }
+        .repo-title, .video-title {
+            font-weight: 600;
+            margin-bottom: 0.3rem;
+            word-break: break-all;
+        }
+        .repo-title a, .video-title a {
+            color: var(--primary);
+            text-decoration: none;
+            transition: color 0.14s;
+        }
+        .repo-title a:hover, .video-title a:hover {
+            color: var(--accent);
+            text-decoration: underline;
+        }
+        .channel-info {
+            font-size: 0.97em;
+            color: #6366f1;
+            margin-top: 0.2rem;
+        }
+        .video-thumb {
+            width: 100%;
+            border-radius: 0.7rem;
+            margin-bottom: 0.6rem;
+            box-shadow: 0 2px 8px 0 rgba(10,10,77,0.07);
+        }
+        /* Features Accordion */
+        .feature-accordion {
+            display: flex;
+            flex-direction: column;
+            gap: 1.7rem;
+        }
+        .feature-item {
+            background: #f4f7fa;
+            border-radius: 1rem;
+            box-shadow: 0 1px 8px 0 rgba(10,10,77,0.07);
+            border: 1.5px solid #e0e7ff;
+            overflow: hidden;
+            transition: box-shadow 0.18s;
+        }
+        .feature-item.open {
+            box-shadow: 0 6px 32px 0 rgba(10,10,77,0.13);
+        }
+        .feature-header {
+            font-size: 1.11em;
+            font-weight: 700;
+            padding: 1.12rem 1.5rem;
+            background: var(--gradient);
+            color: #fff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: background 0.16s;
+        }
+        .feature-content {
+            padding: 1.2rem 1.5rem 1.1rem 1.5rem;
+            display: none;
+        }
+        .feature-item.open .feature-content {
+            display: block;
+            animation: fadein 0.35s;
+        }
+        @keyframes fadein {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: none; }
+        }
+        /* Code block & Copy */
+        .code-block {
+            background: #23234f;
+            color: #fff;
+            border-radius: 0.6rem;
+            padding: 1rem 1.2rem;
+            overflow-x: auto;
+            margin: 0.6rem 0 0 0;
+            font-size: 0.99em;
+        }
+        .copy-btn {
+            background: var(--gradient);
+            color: #fff;
+            border: none;
+            border-radius: 0.5rem;
+            padding: 0.4rem 1.1rem;
+            font-size: 0.95em;
+            font-weight: 600;
+            margin-bottom: 0.3rem;
+            cursor: pointer;
+            float: right;
+        }
+        /* Responsive */
+        @media (max-width: 720px) {
+            main { max-width: 98vw; }
+            .repo-list, .video-list { flex-direction: column; gap: 0.7rem;}
+            .card { padding: 1.2rem 0.8rem;}
+        }
+        @media (max-width: 540px) {
+            .feature-content, .feature-header { padding-left: 0.7rem; padding-right: 0.7rem; }
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <h1>AI-Powered Project Generator</h1>
-        <form id="generateForm">
-            <label for="idea">Enter Your Project Idea:</label>
-            <input type="text" id="idea" name="idea" placeholder="E.g., Social Media Dashboard" required>
+<header>
+    <h1>Project AI Generator</h1>
+    <p>Instantly get the best tech stack, sample code, GitHub repos, and YouTube guides for your next project idea.</p>
+</header>
+<main>
+    <section class="card">
+        <form id="generateForm" autocomplete="off">
+            <h2>Start your next project!</h2>
+            <label for="idea">Project Idea</label>
+            <input type="text" id="idea" name="idea" placeholder="e.g. Real-time chat app with dark mode" required autocomplete="off">
 
-            <!-- Project Type Selection -->
-            <div class="section">
-                <h3>Select Project Type:</h3>
-                <label>
-                    <input type="radio" name="projectType" value="Frontend" required> Frontend
+            <label>Project Type</label>
+            <div class="project-types">
+                <label class="project-type-radio">
+                    <input type="radio" name="projectType" value="Frontend">
+                    <span>Frontend</span>
                 </label>
-                <label>
-                    <input type="radio" name="projectType" value="Backend" required> Backend
+                <label class="project-type-radio">
+                    <input type="radio" name="projectType" value="Backend">
+                    <span>Backend</span>
                 </label>
-                <label>
-                    <input type="radio" name="projectType" value="Fullstack" required> Fullstack
+                <label class="project-type-radio">
+                    <input type="radio" name="projectType" value="App">
+                    <span>App</span>
+                </label>
+                <label class="project-type-radio">
+                    <input type="radio" name="projectType" value="Fullstack">
+                    <span>Fullstack</span>
                 </label>
             </div>
-
-            <!-- Generate Tech Stack Button -->
-            <div class="section">
-                <button type="button" id="generateStackButton">Generate Tech Stack</button>
+            <button type="button" id="generateStackButton" class="btn">Suggest Tech Stacks</button>
+            <div id="stackSection">
+                <h3>Pick a Tech Stack</h3>
+                <div id="stackCards"></div>
             </div>
-
-            <!-- Tech Stack Selection Section -->
-            <div class="section" id="stackSection" style="display:none;">
-                <h3>Select a Suggested Tech Stack:</h3>
-                <div id="stackCards">
-                    <!-- Stack options will be inserted here dynamically -->
-                </div>
-            </div>
-
-            <!-- Submit Button -->
-            <button type="submit" id="submitButton" disabled>Generate Project</button>
+            <button type="submit" class="btn" id="submitButton" disabled>Generate Project</button>
         </form>
+        <div id="loader" class="hidden"></div>
+        <div id="error" class="hidden"></div>
+    </section>
 
-        <!-- Results Section -->
-        <div id="results" class="results-section hidden">
-            <h2>Results</h2>
+    <section id="results" class="card hidden">
+        <div id="projectRepos"></div>
+        <div id="projectVideos"></div>
+        <div id="featureDetails"></div>
+    </section>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 
-            <!-- GitHub Repositories -->
-            <div id="projectRepos">
-                <h3>GitHub Repositories</h3>
-            </div>
-
-            <!-- YouTube Videos -->
-            <div id="projectVideos">
-                <h3>YouTube Videos</h3>
-            </div>
-
-            <!-- Feature Details -->
-            <div id="featureDetails">
-                <h3>Features</h3>
-            </div>
-        </div>
-    </div>
-
-    <script src="/js/script.js"></script>
+<script src="/js/script.js"></script>
 </body>
 </html>
+
